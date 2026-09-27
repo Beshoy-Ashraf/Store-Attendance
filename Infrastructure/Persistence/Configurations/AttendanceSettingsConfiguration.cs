@@ -10,7 +10,8 @@ public class AttendanceSettingsConfiguration : IEntityTypeConfiguration<Attendan
       {
             builder.ToTable("AttendanceSettings");
             builder.HasKey(a => a.Id);
-
+            builder.HasIndex(a => a.StoreId).IsUnique();
+            builder.HasQueryFilter(a => a.Store == null || a.Store.DeleteDate == null);
             builder.Property(a => a.LateGraceMinutes).HasDefaultValue(0);
 
             builder.HasIndex(a => a.StoreId).IsUnique();

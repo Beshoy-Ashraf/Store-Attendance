@@ -91,6 +91,7 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
+
 var app = builder.Build();
 
 // Migration and admin-seeding are both opt-in via configuration (see DatabaseInitializer).
