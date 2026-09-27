@@ -1,0 +1,9 @@
+{
+      "build": {
+            "provider": "dotnet",
+            "buildCommand": "dotnet publish API/API.csproj -c Release -o out"
+      },
+      "start": {
+            "cmd": "dotnet out/API.dll"
+      }
+}
