@@ -1,8 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy csproj files first so NuGet restore is cached across builds until a project file actually changes.
-COPY Csproj.slnx ./
+# Directory.Build.props/Directory.Packages.props are auto-imported by MSBuild and carry shared
+# settings (TargetFramework, central package versions) that the individual .csproj files rely on —
+# they must be present before `dotnet restore` runs, or TargetFramework resolves to empty.
+COPY Csproj.slnx Directory.Build.props Directory.Packages.props ./
 COPY Domain/Domain.csproj Domain/
 COPY Application/Application.csproj Application/
 COPY Infrastructure/Infrastructure.csproj Infrastructure/
