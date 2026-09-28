@@ -31,7 +31,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("default", policy =>
     {
         if (corsOrigins.Length > 0)
-            policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod();
+            policy.WithOrigins(corsOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
         else
 
             policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
