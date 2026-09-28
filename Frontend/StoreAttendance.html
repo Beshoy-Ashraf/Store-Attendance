@@ -1281,7 +1281,7 @@
                      ===================================================================== */
                   var CONFIG = {
                         USE_MOCK: false,
-                        BASE_URL: "https://store-attendance-new.up.railway.app",
+                        BASE_URL: "https://store-attendance-new.up.railway.app/api",
                         AUTH: { login: "/auth/login", refresh: "/auth/refresh" },
                         WEEK_START: 1, /* 0 = Sunday, 1 = Monday, 6 = Saturday */
                         DAY_ROLLOVER_HOUR: 3 /* the attendance "day" ends at 03:00, so 01:30 AM still belongs to the previous day */
@@ -2324,7 +2324,11 @@
       ${me.role === "Admin" && html`<${Field} label="Area manager"><select ...${bind("areaManagerId")}><option value="">Not assigned</option>${ams.map(function (a) { return html`<option key=${a.id} value=${a.id}>${a.displayName}</option>`; })}</select></${Field}>`}
     </div>
     <${Field} label="Registered devices" hint=${isAdmin ? "Static, admin-managed PCs. Staff can only check in from a device on this list — devices aren't tied to a person." : "Only an admin can change a store's registered devices."}>
-      ${isAdmin ? html`<span className="row" style=${{ flexWrap: "nowrap" }}><input placeholder="00:1B:44:11:3A:B7" value=${v.deviceMac} onChange=${bind("deviceMac").onChange} onKeyDown=${function (e) { if (e.key === "Enter") addDeviceMac(); }}/><button type="button" className="btn" onClick=${addDeviceMac}>Add</button></span>` : null}
+          ${isAdmin ? html`<span className="row" style=${{ flexWrap: "nowrap" }}><input placeholder="00:1B:44:11:3A:B7" value=${v.deviceMac} onChange=${bind("deviceMac").onChange} onKeyDown=${function (e) { if (e.key === "Enter") addDeviceMac(); }}/><button type="button" className="btn sm" onClick=${function () {
+                                    (async function () {
+                                          try { setErr(""); var info = await readNetwork(null, s, me); var m = info && info.deviceMac ? normMac(info.deviceMac) : ""; if (!m || !MAC_RE.test(m)) { setErr("No valid device MAC detected."); return; } setV(Object.assign({}, v, { deviceMac: m })); toast("Device MAC detected", "ok"); } catch (e) { setErr(msgOf(e)); }
+                                    })();
+                              }}>Detect</button><button type="button" className="btn" onClick=${addDeviceMac}>Add</button></span>` : null}
     </${Field}>
     <div className="chips">${deviceMacs.length ? deviceMacs.map(function (m) { return html`<span key=${m} className="chip">${m}${isAdmin && html`<button type="button" aria-label=${"Remove " + m} onClick=${function () { setDeviceMacs(deviceMacs.filter(function (x) { return x !== m; })); }}>×</button>`}</span>`; }) : html`<span className="muted">No devices yet.</span>`}</div>
     ${err && html`<p className="alert bad" role="alert">${err}</p>`}
@@ -2535,7 +2539,7 @@
                         }
                         return html`<div className="app">
     <aside className=${cx("side", open && "open")}>
-      <div className="side-top"><div className="brand"><i></i>Rota</div><button type="button" className="menu-btn" aria-expanded=${open} onClick=${function () { setOpen(!open); }}>Menu</button></div>
+      <div className="side-top"><div className="brand"><i></i>Vodafoners</div><button type="button" className="menu-btn" aria-expanded=${open} onClick=${function () { setOpen(!open); }}>Menu</button></div>
       <div className="collapse">
         <div className="who"><b>${personName(user)}</b><span>${ROLE_LABEL[user.role]}${user.storeId ? ", " + dir.storeName(user.storeId) : ""}</span></div>
         <nav className="nav" aria-label="Main">${nav.map(function (n, i) { return n === "-" ? html`<hr key=${i}/>` : html`<a key=${n[0]} href=${"#" + n[0]} aria-current=${cur[0] === n[0] ? "page" : undefined} onClick=${function (e) { e.preventDefault(); r.go(n[0]); }}>${n[1]}</a>`; })}</nav>
@@ -2565,9 +2569,8 @@
       <div className="stack" style=${{ gap: "22px" }}>
         <h1>Every shift, checked and approved.</h1>
         <div className="key">
-          <${Ticket} s=${{ shiftType: "AM", startTime: "09:00:00", endTime: "17:00:00", status: "Approved" }}/>
-          <${Ticket} s=${{ shiftType: "PM", startTime: "14:00:00", endTime: "22:00:00", status: "Pending" }}/>
-          <${Ticket} s=${{ shiftType: "ANN", startTime: "00:00:00", endTime: "00:00:00", status: "Approved" }}/>
+          <${Ticket} s=${{ shiftType: "AM", startTime: "08:30:00", endTime: "03:30:00", status: "Approved" }}/>
+          <${Ticket} s=${{ shiftType: "PM", startTime: "03:00:00", endTime: "22:00:00", status: "Approved" }}/>
         </div>
       </div>
       <p style=${{ color: "var(--side-mute)" }}>Schedules, attendance, requests and approvals for every store.</p>
@@ -2581,7 +2584,7 @@
       ${CONFIG.USE_MOCK ? html`<div className="stack" style=${{ gap: "10px", marginTop: "12px" }}>
         <p className="muted">This copy runs on demo data. Pick a role to look around.</p>
         <div className="demo-list">${DEMO.map(function (d) { return html`<button type="button" key=${d.u} className="btn" disabled=${busy} onClick=${function () { go(d.u, "demo"); }}>${d.label}<small>${d.sub}</small></button>`; })}</div></div>`
-                                    : html`<p className="muted">Connected to ${CONFIG.BASE_URL}</p>`}
+                                    : html`<p className="muted"></p>`}
     </div>
   </div>`;
                   }
