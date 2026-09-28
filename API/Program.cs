@@ -11,6 +11,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,10 +94,12 @@ builder.Services.AddSwaggerGen(opt =>
 
 
 var app = builder.Build();
-var cs = new Npgsql.NpgsqlConnectionStringBuilder(app.Configuration.GetConnectionString("DefaultConnection"));
-app.Logger.LogInformation("DB host={Host} port={Port}", cs.Host, cs.Port);
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+var cs = builder.Configuration.GetConnectionString("DefaultConnection");
+var csb = new NpgsqlConnectionStringBuilder(cs);
+
+app.Logger.LogInformation("DB host={Host} port={Port} user={User}", csb.Host, csb.Port, csb.Username);
+
 var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
 app.Logger.LogInformation("Database:AutoMigrate = {Value}", autoMigrate);
 
