@@ -93,6 +93,8 @@ builder.Services.AddSwaggerGen(opt =>
 
 
 var app = builder.Build();
+var cs = new Npgsql.NpgsqlConnectionStringBuilder(app.Configuration.GetConnectionString("DefaultConnection"));
+app.Logger.LogInformation("DB host={Host} port={Port}", cs.Host, cs.Port);
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
