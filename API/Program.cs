@@ -117,6 +117,7 @@ if (autoMigrate)
         app.Logger.LogError(ex, "Database initialization failed; continuing startup.");
     }
 }
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("default");
 app.UseAuthentication();
 app.UseAuthorization();
