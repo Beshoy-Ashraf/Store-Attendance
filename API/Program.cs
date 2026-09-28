@@ -94,11 +94,21 @@ builder.Services.AddSwaggerGen(opt =>
 
 var app = builder.Build();
 
-// Migration and admin-seeding are both opt-in via configuration (see DatabaseInitializer).
-await app.Services.InitializeDatabaseAsync();
-
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrate");
+app.Logger.LogInformation("Database:AutoMigrate = {Value}", autoMigrate);
 
+if (autoMigrate)
+{
+    try
+    {
+        await DatabaseInitializer.InitializeDatabaseAsync(app.Services);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Database initialization failed; continuing startup.");
+    }
+}
 app.UseCors("default");
 app.UseAuthentication();
 app.UseAuthorization();
