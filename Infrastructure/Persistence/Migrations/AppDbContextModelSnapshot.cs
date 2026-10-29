@@ -399,6 +399,81 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Stores", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.StoreDailyEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AcqHighAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AcqLowAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AmOneLine")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AmThreeLines")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AmTwoLines")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CashNewAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ConnectivityAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("DslAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EnterpriseGaAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EnterpriseNewAccountAchieved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Mnp")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NewRed")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PmOneLine")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PmThreeLines")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PmTwoLines")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TerminalAchieved")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("StoreDailyEntries", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.StoreDevice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -428,6 +503,60 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("StoreId");
 
                     b.ToTable("StoreDevices", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.StoreMonthlyTarget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AcqHigh")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AcqLow")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CashNew")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Connectivity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Dsl")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EnterpriseGa")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EnterpriseNewAccount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Terminal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId", "Year", "Month")
+                        .IsUnique();
+
+                    b.ToTable("StoreMonthlyTargets", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>
@@ -616,10 +745,32 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("AreaManager");
                 });
 
+            modelBuilder.Entity("Domain.Entities.StoreDailyEntry", b =>
+                {
+                    b.HasOne("Domain.Entities.Store", "Store")
+                        .WithMany("DailyEntries")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
             modelBuilder.Entity("Domain.Entities.StoreDevice", b =>
                 {
                     b.HasOne("Domain.Entities.Store", "Store")
                         .WithMany("Devices")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StoreMonthlyTarget", b =>
+                {
+                    b.HasOne("Domain.Entities.Store", "Store")
+                        .WithMany("MonthlyTargets")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -646,7 +797,11 @@ namespace Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("AttendanceSettings");
 
+                    b.Navigation("DailyEntries");
+
                     b.Navigation("Devices");
+
+                    b.Navigation("MonthlyTargets");
 
                     b.Navigation("Staff");
                 });

@@ -13,7 +13,8 @@ public interface IUnitOfWork : IDisposable
       IMissionRepository MissionRepository { get; }
       IDeviceRepository DeviceRepository { get; }
       IAttendanceSettingsRepository AttendanceSettingsRepository { get; }
-
+      IStoreDailyEntryRepository StoreDailyEntryRepository { get; }
+      IStoreMonthlyTargetRepository StoreMonthlyTargetRepository { get; }
 
       Task<int> Complete(CancellationToken cancellationToken);
 }

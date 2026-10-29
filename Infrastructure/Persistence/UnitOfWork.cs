@@ -18,7 +18,8 @@ public class UnitOfWork : IUnitOfWork
       public IMissionRepository MissionRepository { get; private set; } = null!;
       public IDeviceRepository DeviceRepository { get; private set; } = null!;
       public IAttendanceSettingsRepository AttendanceSettingsRepository { get; private set; } = null!;
-
+      public IStoreDailyEntryRepository StoreDailyEntryRepository { get; private set; } = null!;
+      public IStoreMonthlyTargetRepository StoreMonthlyTargetRepository { get; private set; } = null!;
 
       public UnitOfWork(AppDbContext dBContext)
       {
@@ -32,7 +33,8 @@ public class UnitOfWork : IUnitOfWork
             MissionRepository = new MissionRepository(_dbContext);
             DeviceRepository = new DeviceRepository(_dbContext);
             AttendanceSettingsRepository = new AttendanceSettingsRepository(_dbContext);
-
+            StoreDailyEntryRepository = new StoreDailyEntryRepository(_dbContext);
+            StoreMonthlyTargetRepository = new StoreMonthlyTargetRepository(_dbContext);
       }
       public async Task<int> Complete(CancellationToken cancellationToken)
       {

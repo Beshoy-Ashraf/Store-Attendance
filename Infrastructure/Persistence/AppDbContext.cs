@@ -7,6 +7,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> option) : DbContext(opt
 {
       public DbSet<User> Users { get; set; }
       public DbSet<RefreshToken> RefreshTokens { get; set; }
+      public DbSet<StoreDailyEntry> StoreDailyEntries { get; set; }
+      public DbSet<StoreMonthlyTarget> StoreMonthlyTargets { get; set; }
 
 
 

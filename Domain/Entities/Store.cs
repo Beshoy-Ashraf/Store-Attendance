@@ -15,4 +15,6 @@ public class Store
       public AttendanceSettings? AttendanceSettings { get; set; }
       public ICollection<StoreDevice> Devices { get; set; } = new List<StoreDevice>();
       public ICollection<User> Staff { get; set; } = new List<User>();
+      public ICollection<StoreDailyEntry> DailyEntries { get; set; } = new List<StoreDailyEntry>();
+      public ICollection<StoreMonthlyTarget> MonthlyTargets { get; set; } = new List<StoreMonthlyTarget>();
 }

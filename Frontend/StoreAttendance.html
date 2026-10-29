@@ -1663,23 +1663,172 @@
                         } catch (e) { return false; }
                   }
                   async function request(method, path, opts) {
-                        opts = opts || {}; var q = clean(opts.query);
-                        if (CONFIG.USE_MOCK) return mockHandle(method, path, q, opts.body, session.token);
-                        var qs = Object.keys(q).length ? "?" + Object.keys(q).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(q[k]); }).join("&") : "";
+                        opts = opts || {};
+
+                        var q = clean(opts.query);
+
+                        // =========================================================
+                        // MOCK MODE
+                        // =========================================================
+                        if (CONFIG.USE_MOCK) {
+                              return mockHandle(
+                                    method,
+                                    path,
+                                    q,
+                                    opts.body,
+                                    session.token
+                              );
+                        }
+
+                        // =========================================================
+                        // QUERY STRING
+                        // =========================================================
+                        var qs = Object.keys(q).length
+                              ? "?" + Object.keys(q)
+                                    .map(function (k) {
+                                          return encodeURIComponent(k) + "=" +
+                                                encodeURIComponent(q[k]);
+                                    })
+                                    .join("&")
+                              : "";
+
+                        // =========================================================
+                        // GET DEVICE MAC
+                        // =========================================================
+                        var deviceMac = "";
+
+                        try {
+                              // Real MAC is supplied by the desktop attendance agent.
+                              if (
+                                    window.attendanceAgent &&
+                                    typeof window.attendanceAgent.getNetworkInfo === "function"
+                              ) {
+                                    var networkInfo =
+                                          await window.attendanceAgent.getNetworkInfo();
+
+                                    if (networkInfo && networkInfo.deviceMac) {
+                                          deviceMac = normMac(networkInfo.deviceMac);
+                                    }
+                              }
+
+                              // Fallback to the MAC already saved by this page.
+                              if (!deviceMac && typeof readStoredDeviceMac === "function") {
+                                    deviceMac = readStoredDeviceMac();
+                              }
+                        } catch (e) {
+                              console.warn("Could not read device MAC:", e);
+
+                              try {
+                                    if (typeof readStoredDeviceMac === "function") {
+                                          deviceMac = readStoredDeviceMac();
+                                    }
+                              } catch (storageError) {
+                                    deviceMac = "";
+                              }
+                        }
+
+                        // =========================================================
+                        // SEND REQUEST
+                        // =========================================================
                         var go = function () {
-                              var h = { "Content-Type": "application/json" }; if (session.token) h.Authorization = "Bearer " + session.token;
-                              return fetch(CONFIG.BASE_URL + path + qs, { method: method, headers: h, body: opts.body ? JSON.stringify(opts.body) : undefined });
+                              var h = {
+                                    "Content-Type": "application/json"
+                              };
+
+                              // JWT Authorization
+                              if (session.token) {
+                                    h.Authorization = "Bearer " + session.token;
+                              }
+
+                              // Device MAC - automatically sent with every request.
+                              if (deviceMac) {
+                                    h["X-Device-Mac"] = deviceMac;
+                              }
+
+                              return fetch(
+                                    CONFIG.BASE_URL + path + qs,
+                                    {
+                                          method: method,
+                                          headers: h,
+                                          body: opts.body
+                                                ? JSON.stringify(opts.body)
+                                                : undefined
+                                    }
+                              );
                         };
+
+                        // =========================================================
+                        // FIRST REQUEST
+                        // =========================================================
                         var res = await go();
-                        if (res.status === 401 && session.refresh && path !== CONFIG.AUTH.login && path !== CONFIG.AUTH.refresh && await tryRefresh()) res = await go();
-                        if (res.status === 401 && path !== CONFIG.AUTH.login) { if (session.onExpire) session.onExpire(); }
+
+                        // =========================================================
+                        // TOKEN REFRESH
+                        // =========================================================
+                        if (
+                              res.status === 401 &&
+                              session.refresh &&
+                              path !== CONFIG.AUTH.login &&
+                              path !== CONFIG.AUTH.refresh &&
+                              await tryRefresh()
+                        ) {
+                              // go() is called again and the same Device MAC header
+                              // is automatically included.
+                              res = await go();
+                        }
+
+                        // =========================================================
+                        // SESSION EXPIRED
+                        // =========================================================
+                        if (
+                              res.status === 401 &&
+                              path !== CONFIG.AUTH.login
+                        ) {
+                              if (session.onExpire) {
+                                    session.onExpire();
+                              }
+                        }
+
+                        // =========================================================
+                        // ERROR HANDLING
+                        // =========================================================
                         if (!res.ok) {
                               var m = res.statusText;
-                              try { var d = await res.json(); m = d.detail || d.message || d.title || (d.errors ? Object.keys(d.errors).map(function (k) { return [].concat(d.errors[k]).join(" "); }).join(" ") : m); } catch (e) { }
-                              throw new ApiError(res.status, m || "Request failed.");
+
+                              try {
+                                    var d = await res.json();
+
+                                    m =
+                                          d.detail ||
+                                          d.message ||
+                                          d.title ||
+                                          (
+                                                d.errors
+                                                      ? Object.keys(d.errors)
+                                                            .map(function (k) {
+                                                                  return [].concat(d.errors[k]).join(" ");
+                                                            })
+                                                            .join(" ")
+                                                      : m
+                                          );
+                              } catch (e) {
+                                    // Response wasn't JSON. Keep statusText.
+                              }
+
+                              throw new ApiError(
+                                    res.status,
+                                    m || "Request failed."
+                              );
                         }
-                        if (res.status === 204) return null;
-                        var txt = await res.text(); return txt ? JSON.parse(txt) : null;
+
+                        // =========================================================
+                        // RESPONSE
+                        // =========================================================
+                        var txt = await res.text();
+
+                        return txt
+                              ? JSON.parse(txt)
+                              : null;
                   }
                   function norm(r) {
                         if (Array.isArray(r)) return { items: r, page: 1, pageSize: r.length || 1, totalCount: r.length };
@@ -1737,10 +1886,10 @@
                         return v ? normMac(v) : "";
                   }
                   function readStoredDeviceMac() {
-                        try { return normMac(localStorage.getItem("attendance.deviceMac") || ""); } catch (e) { return ""; }
+                        try { var v = normMac(localStorage.getItem("attendance.deviceMac") || ""); return MAC_RE.test(v) ? v : ""; } catch (e) { return ""; }
                   }
                   function saveStoredDeviceMac(v) {
-                        try { if (v && v.trim()) localStorage.setItem("attendance.deviceMac", normMac(v)); } catch (e) { }
+                        try { v = normMac(v); if (MAC_RE.test(v)) localStorage.setItem("attendance.deviceMac", v); } catch (e) { }
                   }
                   async function browserNetworkInfo(user, store, deviceMacOverride) {
                         // Devices are a static, admin-managed fleet per store — this terminal's MAC doesn't change,
@@ -1760,13 +1909,6 @@
                               return { deviceMac: sim === "device" ? "00:1B:44:11:3A:B7" : (devs[0] || "00:1B:44:00:00:01") };
                         }
                         return browserNetworkInfo(user, store, deviceMacOverride);
-                  }
-                  if (!window.attendanceAgent) {
-                        window.attendanceAgent = {
-                              async getNetworkInfo() {
-                                    return browserNetworkInfo();
-                              }
-                        };
                   }
 
                   /* =====================================================================
@@ -1922,7 +2064,7 @@
                         var deviceState = useState(readStoredDeviceMac() || ((store && store.deviceMacs && store.deviceMacs[0]) || "")), deviceMac = deviceState[0], setDeviceMac = deviceState[1];
                         var bs = useState(false), busy = bs[0], setBusy = bs[1];
                         var es = useState(""), err = es[0], setErr = es[1];
-                        var agent = hasAgent(), canRead = agent || CONFIG.USE_MOCK || !!deviceMac.trim();
+                        var agent = hasAgent(), canRead = agent || CONFIG.USE_MOCK || MAC_RE.test(normMac(deviceMac));
                         var todays = items(att).filter(function (r) { return r.checkInTime && workDay(new Date(r.checkInTime)) === day; });
                         var rec = todays.find(function (r) { return !r.checkOutTime; }) || todays[0];
                         var phase = !rec ? "idle" : rec.checkOutTime ? "done" : "in";
@@ -1933,8 +2075,8 @@
                               setBusy(true); setErr("");
                               try {
                                     var info = await readNetwork(sim, store, user, deviceMac);
-                                    if (!info || !info.deviceMac || !info.deviceMac.trim() || info.deviceMac === "00:00:00:00:00:00") {
-                                          throw new Error("No valid device MAC was found. Enter this PC's registered device MAC first.");
+                                    if (!info || !MAC_RE.test(normMac(info.deviceMac))) {
+                                          throw new Error("Enter a valid MAC like AA:BB:CC:DD:EE:FF (the one your Admin registered for this PC).");
                                     }
                                     console.log("Attendance network info:", {
                                           deviceMac: info.deviceMac,
@@ -1957,7 +2099,9 @@
         ${att.error && html`<${ErrorBox} error=${att.error} retry=${att.refetch}/>`}
         ${err && html`<p className="alert bad" role="alert">${err}</p>`}
         ${!canRead && html`<div className="alert warn"><b>Attendance needs this PC's device info.</b> Install a PC agent, or enter this PC's registered device MAC below before attending.</div>`}
-        ${!agent && !CONFIG.USE_MOCK && html`<div className="panel"><h3>Store device</h3><${Field} label="Device MAC" hint="This PC's MAC, as registered by your Admin"><input value=${deviceMac} onChange=${function (e) { var value = e.target.value; setDeviceMac(value); saveStoredDeviceMac(value); }} placeholder="AA:BB:CC:DD:EE:FF" /></${Field}></div>`}
+        ${!agent && !CONFIG.USE_MOCK && html`<div className="panel"><h3>Store device</h3><${Field} label="Device MAC" hint="This PC's MAC, as registered by your Admin"><input value=${deviceMac} onChange=${function (e) { var value = e.target.value; setDeviceMac(value); saveStoredDeviceMac(value); }} placeholder="AA:BB:CC:DD:EE:FF" /></${Field}>
+          <p className="muted" style=${{ marginTop: "8px" }}>MAC that will be sent: <b dir="ltr">${normMac(deviceMac) || "(empty)"}</b> ${MAC_RE.test(normMac(deviceMac)) ? "✔ valid format" : "✖ invalid format"}</p>
+          <p className="muted" dir="ltr">Registered for this store: ${(store && store.deviceMacs && store.deviceMacs.length) ? store.deviceMacs.map(function (m) { return html`<button type="button" className="btn sm" style=${{ marginRight: "6px" }} onClick=${function () { setDeviceMac(m); saveStoredDeviceMac(m); }}>${m}</button>`; }) : JSON.stringify(store && store.deviceMacs)}</p></div>`}
       </div>
       <div className="stack">
         <div className="panel"><h3>Today's shift</h3>
